@@ -21,6 +21,14 @@ export interface Todo {
   createdAt: string;
   reminderTime?: string;
   tags?: string[];
+  listId?: string;
+}
+
+export interface TodoList {
+  id: string;
+  name: string;
+  createdAt: string;
+  color?: string;
 }
 
 export interface Note {
@@ -31,12 +39,22 @@ export interface Note {
   updatedAt: string;
   color?: string;
   tags?: string[];
+  categoryId?: string;
+}
+
+export interface NoteCategory {
+  id: string;
+  name: string;
+  createdAt: string;
+  color?: string;
 }
 
 export interface PersistentData {
   habits: Habit[];
   todos: Todo[];
+  todoLists: TodoList[];
   notes: Note[];
+  noteCategories: NoteCategory[];
   lastBackupDate?: string;
 }
 

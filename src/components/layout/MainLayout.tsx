@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useData } from '@/context/DataContext';
 import NotificationPanel from '@/components/notifications/NotificationPanel';
 import { useIsMobile } from '@/hooks/use-mobile';
+import BottomNavigation from './BottomNavigation';
 
 const MainLayout = () => {
   const navigate = useNavigate();
@@ -126,7 +127,7 @@ const MainLayout = () => {
         {/* Main content */}
         <main className={cn(
           "flex-1 p-6 overflow-auto",
-          isMobile && "mt-14"
+          isMobile && "mt-14 pb-20" // Add padding bottom for bottom navigation
         )}>
           <Outlet />
         </main>
@@ -139,6 +140,9 @@ const MainLayout = () => {
           />
         )}
       </div>
+      
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   );
 };

@@ -1,12 +1,13 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PersistentData, Habit, Todo, Note, Notification } from '@/types';
+import { PersistentData, Habit, Todo, Note, Notification, TodoList, NoteCategory } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 
 interface DataContextType {
   habits: Habit[];
   todos: Todo[];
+  todoLists: TodoList[];
   notes: Note[];
+  noteCategories: NoteCategory[];
   notifications: Notification[];
   addHabit: (habit: Omit<Habit, 'id' | 'streak' | 'completedDates' | 'createdAt'>) => void;
   updateHabit: (id: string, habit: Partial<Habit>) => void;
@@ -16,9 +17,15 @@ interface DataContextType {
   updateTodo: (id: string, todo: Partial<Todo>) => void;
   deleteTodo: (id: string) => void;
   toggleTodo: (id: string) => void;
+  addTodoList: (list: Omit<TodoList, 'id' | 'createdAt'>) => void;
+  updateTodoList: (id: string, list: Partial<TodoList>) => void;
+  deleteTodoList: (id: string) => void;
   addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateNote: (id: string, note: Partial<Note>) => void;
   deleteNote: (id: string) => void;
+  addNoteCategory: (category: Omit<NoteCategory, 'id' | 'createdAt'>) => void;
+  updateNoteCategory: (id: string, category: Partial<NoteCategory>) => void;
+  deleteNoteCategory: (id: string) => void;
   addNotification: (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => void;
   markNotificationAsRead: (id: string) => void;
   deleteNotification: (id: string) => void;
@@ -35,7 +42,9 @@ interface DataContextType {
 const DEFAULT_DATA: PersistentData = {
   habits: [],
   todos: [],
-  notes: []
+  todoLists: [],
+  notes: [],
+  noteCategories: []
 };
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -58,7 +67,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const savedData = localStorage.getItem('habitTrackerData');
     if (savedData) {
       try {
-        setData(JSON.parse(savedData));
+        const parsedData = JSON.parse(savedData);
+        // Handle backward compatibility
+        if (!parsedData.todoLists) parsedData.todoLists = [];
+        if (!parsedData.noteCategories) parsedData.noteCategories = [];
+        
+        setData(parsedData);
       } catch (error) {
         console.error('Failed to parse saved data:', error);
         setData(DEFAULT_DATA);
@@ -243,6 +257,52 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }));
   };
 
+  // Todo List functions
+  const addTodoList = (list: Omit<TodoList, 'id' | 'createdAt'>) => {
+    const newList: TodoList = {
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+      ...list
+    };
+    
+    setData(prev => ({
+      ...prev,
+      todoLists: [...prev.todoLists, newList]
+    }));
+    
+    toast({
+      title: "List Added",
+      description: `${list.name} list has been created.`
+    });
+  };
+
+  const updateTodoList = (id: string, list: Partial<TodoList>) => {
+    setData(prev => ({
+      ...prev,
+      todoLists: prev.todoLists.map(l => 
+        l.id === id ? { ...l, ...list } : l
+      )
+    }));
+  };
+
+  const deleteTodoList = (id: string) => {
+    setData(prev => {
+      // Also delete all todos in the list
+      const updatedTodos = prev.todos.filter(todo => todo.listId !== id);
+      
+      return {
+        ...prev,
+        todoLists: prev.todoLists.filter(l => l.id !== id),
+        todos: updatedTodos
+      };
+    });
+    
+    toast({
+      title: "List Deleted",
+      description: "The list and all its todos have been deleted."
+    });
+  };
+
   // Note functions
   const addNote = (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     const now = new Date().toISOString();
@@ -289,6 +349,57 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     toast({
       title: "Note Deleted",
       description: "The note has been deleted."
+    });
+  };
+
+  // Note Category functions
+  const addNoteCategory = (category: Omit<NoteCategory, 'id' | 'createdAt'>) => {
+    const newCategory: NoteCategory = {
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+      ...category
+    };
+    
+    setData(prev => ({
+      ...prev,
+      noteCategories: [...prev.noteCategories, newCategory]
+    }));
+    
+    toast({
+      title: "Category Added",
+      description: `${category.name} category has been created.`
+    });
+  };
+
+  const updateNoteCategory = (id: string, category: Partial<NoteCategory>) => {
+    setData(prev => ({
+      ...prev,
+      noteCategories: prev.noteCategories.map(c => 
+        c.id === id ? { ...c, ...category } : c
+      )
+    }));
+  };
+
+  const deleteNoteCategory = (id: string) => {
+    setData(prev => {
+      // Update notes to remove categoryId
+      const updatedNotes = prev.notes.map(note => {
+        if (note.categoryId === id) {
+          return { ...note, categoryId: undefined };
+        }
+        return note;
+      });
+      
+      return {
+        ...prev,
+        noteCategories: prev.noteCategories.filter(c => c.id !== id),
+        notes: updatedNotes
+      };
+    });
+    
+    toast({
+      title: "Category Deleted",
+      description: "The category has been deleted."
     });
   };
 
@@ -426,7 +537,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const contextValue: DataContextType = {
     habits: data.habits,
     todos: data.todos,
+    todoLists: data.todoLists,
     notes: data.notes,
+    noteCategories: data.noteCategories,
     notifications,
     addHabit,
     updateHabit,
@@ -436,9 +549,15 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     updateTodo,
     deleteTodo,
     toggleTodo,
+    addTodoList,
+    updateTodoList,
+    deleteTodoList,
     addNote,
     updateNote,
     deleteNote,
+    addNoteCategory,
+    updateNoteCategory,
+    deleteNoteCategory,
     addNotification,
     markNotificationAsRead,
     deleteNotification,

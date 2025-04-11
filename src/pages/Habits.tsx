@@ -1,22 +1,7 @@
 
 import React, { useState } from 'react';
-import { 
-  Plus, 
-  MoreVertical, 
-  CheckCircle2, 
-  Clock, 
-  Flame, 
-  Trash2,
-  Edit
-} from 'lucide-react';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle,
-  CardDescription,
-  CardFooter
-} from '@/components/ui/card';
+import { Plus } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -27,137 +12,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useData } from '@/context/DataContext';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Habit } from '@/types';
-import { differenceInDays, format, isToday } from 'date-fns';
-
-const HabitItem = ({ habit }: { habit: Habit }) => {
-  const { completeHabit, updateHabit, deleteHabit } = useData();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedName, setEditedName] = useState(habit.name);
-  const [editedDesc, setEditedDesc] = useState(habit.description || '');
-
-  const today = new Date().toISOString().split('T')[0];
-  const isCompletedToday = habit.completedDates.includes(today);
-
-  const handleComplete = () => {
-    completeHabit(habit.id);
-  };
-
-  const handleSaveEdit = () => {
-    updateHabit(habit.id, {
-      name: editedName,
-      description: editedDesc
-    });
-    setIsEditing(false);
-  };
-
-  const handleDelete = () => {
-    deleteHabit(habit.id);
-  };
-
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          {isEditing ? (
-            <Input
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              className="font-semibold"
-            />
-          ) : (
-            <CardTitle>{habit.name}</CardTitle>
-          )}
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {isEditing ? (
-                <>
-                  <DropdownMenuItem onClick={handleSaveEdit}>
-                    Save Changes
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsEditing(false)}>
-                    Cancel
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <>
-                  <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                    <Edit className="h-4 w-4 mr-2" />Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />Delete
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        
-        {isEditing ? (
-          <Input
-            value={editedDesc}
-            onChange={(e) => setEditedDesc(e.target.value)}
-            className="text-muted-foreground text-sm mt-2"
-            placeholder="Add a description"
-          />
-        ) : (
-          habit.description && (
-            <CardDescription>{habit.description}</CardDescription>
-          )
-        )}
-      </CardHeader>
-      
-      <CardContent>
-        <div className="flex items-center gap-4 mt-2">
-          <div className="flex items-center gap-1">
-            <Flame className="h-4 w-4 text-orange-500" />
-            <span className="text-sm font-semibold">{habit.streak}</span>
-          </div>
-          
-          <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              {habit.frequency}
-            </span>
-          </div>
-        </div>
-      </CardContent>
-      
-      <CardFooter className="pt-2">
-        <Button 
-          variant={isCompletedToday ? "default" : "outline"} 
-          className={`w-full ${isCompletedToday ? "bg-brand-purple hover:bg-brand-purple-dark" : ""}`}
-          onClick={handleComplete}
-        >
-          <CheckCircle2 className="h-4 w-4 mr-2" />
-          {isCompletedToday ? "Completed" : "Mark as Complete"}
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-};
+import HabitItem from '@/components/habits/HabitItem';
 
 const AddHabitForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) => {
   const { addHabit } = useData();
