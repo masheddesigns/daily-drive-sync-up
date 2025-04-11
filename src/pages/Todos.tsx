@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Plus, 
@@ -11,7 +10,8 @@ import {
   Trash2,
   Edit,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  List
 } from 'lucide-react';
 import { 
   Card, 
@@ -48,16 +48,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from '@/components/ui/separator';
-import { Todo } from '@/types';
+import { Todo, TodoList } from '@/types';
 import { useData } from '@/context/DataContext';
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 const priorityColors = {
   low: "bg-habit-green/10 text-habit-green border-habit-green/20",
   medium: "bg-amber-500/10 text-amber-500 border-amber-500/20",
   high: "bg-habit-red/10 text-habit-red border-habit-red/20"
 };
+
+const listColors = [
+  "bg-brand-purple/10 border-brand-purple/30",
+  "bg-blue-500/10 border-blue-500/30",
+  "bg-green-500/10 border-green-500/30",
+  "bg-amber-500/10 border-amber-500/30",
+  "bg-red-500/10 border-red-500/30",
+  "bg-pink-500/10 border-pink-500/30",
+  "bg-indigo-500/10 border-indigo-500/30",
+];
 
 const TodoItem = ({ todo }: { todo: Todo }) => {
   const { toggleTodo, updateTodo, deleteTodo } = useData();
@@ -225,12 +236,17 @@ const TodoItem = ({ todo }: { todo: Todo }) => {
   );
 };
 
-const AddTodoForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) => {
-  const { addTodo } = useData();
+const AddTodoForm = ({ open, onOpenChange, selectedList }: { 
+  open: boolean, 
+  onOpenChange: (open: boolean) => void,
+  selectedList?: string
+}) => {
+  const { addTodo, todoLists } = useData();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [dueDate, setDueDate] = useState('');
+  const [listId, setListId] = useState(selectedList || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,7 +255,8 @@ const AddTodoForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
         title,
         description: description.trim() || undefined,
         priority,
-        dueDate: dueDate || undefined
+        dueDate: dueDate || undefined,
+        listId: listId || undefined
       });
       
       // Reset form
@@ -305,6 +322,26 @@ const AddTodoForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
             />
           </div>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="list">List</Label>
+          <Select
+            value={listId}
+            onValueChange={setListId}
+          >
+            <SelectTrigger id="list">
+              <SelectValue placeholder="Select a list or none" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">No List</SelectItem>
+              {todoLists.map(list => (
+                <SelectItem key={list.id} value={list.id}>
+                  {list.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       
       <DialogFooter className="mt-6">
@@ -314,25 +351,100 @@ const AddTodoForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
   );
 };
 
+const AddListForm = ({ onClose }: { onClose: () => void }) => {
+  const { addTodoList } = useData();
+  const [name, setName] = useState('');
+  const [color, setColor] = useState(listColors[0]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim()) {
+      addTodoList({ 
+        name: name.trim(),
+        color
+      });
+      setName('');
+      onClose();
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="listName">List Name</Label>
+        <Input
+          id="listName"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter list name"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>List Color</Label>
+        <div className="flex flex-wrap gap-2">
+          {listColors.map((bgColor) => (
+            <Button
+              key={bgColor}
+              type="button"
+              variant="outline"
+              className={cn(
+                "w-8 h-8 rounded-full p-0 border-2",
+                bgColor,
+                color === bgColor ? "border-primary" : "border-transparent"
+              )}
+              onClick={() => setColor(bgColor)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 mt-6">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit">
+          Add List
+        </Button>
+      </div>
+    </form>
+  );
+};
+
 const Todos = () => {
-  const { todos } = useData();
+  const { todos, todoLists, deleteTodoList } = useData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [selectedList, setSelectedList] = useState<string | null>(null);
+  const [isAddingList, setIsAddingList] = useState(false);
 
   const filteredTodos = todos.filter(todo => {
+    if (selectedList && todo.listId !== selectedList) return false;
     if (filter === 'all') return true;
     if (filter === 'active') return !todo.completed;
     if (filter === 'completed') return todo.completed;
     return true;
   });
 
-  const incompleteTodos = todos.filter(todo => !todo.completed);
+  const incompleteTodos = filteredTodos.filter(todo => !todo.completed);
   const hasOverdueTodos = incompleteTodos.some(
     todo => todo.dueDate && isPast(new Date(todo.dueDate)) && !isToday(new Date(todo.dueDate))
   );
 
+  const handleAddListClick = () => {
+    setIsAddingList(true);
+  };
+
+  const handleListDelete = (id: string) => {
+    if (selectedList === id) {
+      setSelectedList(null);
+    }
+    deleteTodoList(id);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-4 px-4">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Todo List</h1>
@@ -355,75 +467,140 @@ const Todos = () => {
                 Create a new task to keep track of your work.
               </DialogDescription>
             </DialogHeader>
-            <AddTodoForm open={dialogOpen} onOpenChange={setDialogOpen} />
+            <AddTodoForm 
+              open={dialogOpen} 
+              onOpenChange={setDialogOpen} 
+              selectedList={selectedList || undefined}
+            />
           </DialogContent>
         </Dialog>
       </div>
       
-      <div className="flex justify-between items-center">
-        <div className="space-x-2">
-          <Button 
-            variant={filter === 'all' ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setFilter('all')}
-          >
-            All
-          </Button>
-          <Button 
-            variant={filter === 'active' ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setFilter('active')}
-          >
-            Active
-          </Button>
-          <Button 
-            variant={filter === 'completed' ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setFilter('completed')}
-          >
-            Completed
-          </Button>
-        </div>
-        
-        <p className="text-sm text-muted-foreground">
-          {incompleteTodos.length} {incompleteTodos.length === 1 ? 'task' : 'tasks'} remaining
-        </p>
-      </div>
-      
-      {hasOverdueTodos && (
-        <div className="flex items-center gap-2 p-3 border border-destructive/30 bg-destructive/5 rounded-md">
-          <AlertCircle className="h-5 w-5 text-destructive" />
-          <p className="text-sm">You have overdue tasks. Consider updating their due dates.</p>
-        </div>
-      )}
-      
-      <div>
-        {filteredTodos.length === 0 ? (
-          <Card className="p-8 text-center">
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                {filter === 'all' 
-                  ? "You don't have any todos yet. Add your first todo to get started."
-                  : filter === 'active'
-                    ? "You don't have any active todos. All caught up!"
-                    : "You don't have any completed todos yet."
-                }
-              </p>
-              {filter === 'all' && (
-                <Button onClick={() => setDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Todo
+      <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6">
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold">Lists</h2>
+            <Button variant="ghost" size="icon" onClick={handleAddListClick}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="space-y-1">
+            <Button
+              variant={selectedList === null ? "default" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setSelectedList(null)}
+            >
+              <List className="h-4 w-4 mr-2" />
+              All Todos
+            </Button>
+            
+            {todoLists.map(list => (
+              <div key={list.id} className="flex items-center">
+                <Button
+                  variant={selectedList === list.id ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => setSelectedList(list.id)}
+                >
+                  <div className={cn("h-3 w-3 rounded-full mr-2", list.color || "bg-primary")} />
+                  {list.name}
                 </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div>
-            {filteredTodos.map((todo) => (
-              <TodoItem key={todo.id} todo={todo} />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={() => handleListDelete(list.id)}
+                      className="text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete List
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             ))}
           </div>
-        )}
+
+          {isAddingList && (
+            <Card>
+              <CardContent className="pt-4">
+                <AddListForm onClose={() => setIsAddingList(false)} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="space-x-2">
+              <Button 
+                variant={filter === 'all' ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setFilter('all')}
+              >
+                All
+              </Button>
+              <Button 
+                variant={filter === 'active' ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setFilter('active')}
+              >
+                Active
+              </Button>
+              <Button 
+                variant={filter === 'completed' ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setFilter('completed')}
+              >
+                Completed
+              </Button>
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              {incompleteTodos.length} {incompleteTodos.length === 1 ? 'task' : 'tasks'} remaining
+            </p>
+          </div>
+          
+          {hasOverdueTodos && (
+            <div className="flex items-center gap-2 p-3 border border-destructive/30 bg-destructive/5 rounded-md">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              <p className="text-sm">You have overdue tasks. Consider updating their due dates.</p>
+            </div>
+          )}
+          
+          <div>
+            {filteredTodos.length === 0 ? (
+              <Card className="p-8 text-center">
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">
+                    {selectedList 
+                      ? "This list doesn't have any todos. Add your first todo to get started."
+                      : filter === 'all' 
+                        ? "You don't have any todos yet. Add your first todo to get started."
+                        : filter === 'active'
+                          ? "You don't have any active todos. All caught up!"
+                          : "You don't have any completed todos yet."
+                    }
+                  </p>
+                  <Button onClick={() => setDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Todo
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div>
+                {filteredTodos.map((todo) => (
+                  <TodoItem key={todo.id} todo={todo} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

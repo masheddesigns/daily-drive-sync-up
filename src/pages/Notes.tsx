@@ -6,7 +6,10 @@ import {
   Trash2,
   Edit,
   Calendar,
-  Tag
+  Tag,
+  Folder,
+  List,
+  FileText
 } from 'lucide-react';
 import { 
   Card, 
@@ -36,7 +39,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Note } from '@/types';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Note, NoteCategory } from '@/types';
 import { useData } from '@/context/DataContext';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -53,16 +63,28 @@ const colors = [
   "bg-indigo-100",
 ];
 
+const categoryColors = [
+  "bg-brand-purple/10 border-brand-purple/30",
+  "bg-blue-500/10 border-blue-500/30",
+  "bg-green-500/10 border-green-500/30",
+  "bg-amber-500/10 border-amber-500/30",
+  "bg-red-500/10 border-red-500/30",
+  "bg-pink-500/10 border-pink-500/30",
+  "bg-indigo-500/10 border-indigo-500/30",
+];
+
 const NoteItem = ({ note }: { note: Note }) => {
-  const { updateNote, deleteNote } = useData();
+  const { updateNote, deleteNote, noteCategories } = useData();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(note.title);
   const [editedContent, setEditedContent] = useState(note.content);
+  const [editedCategoryId, setEditedCategoryId] = useState(note.categoryId);
 
   const handleSaveEdit = () => {
     updateNote(note.id, {
       title: editedTitle,
-      content: editedContent
+      content: editedContent,
+      categoryId: editedCategoryId
     });
     setIsEditing(false);
   };
@@ -72,6 +94,7 @@ const NoteItem = ({ note }: { note: Note }) => {
   };
 
   const noteColor = note.color || colors[Math.floor(Math.random() * colors.length)];
+  const category = note.categoryId ? noteCategories.find(cat => cat.id === note.categoryId) : null;
 
   return (
     <Card className={cn("h-full flex flex-col", noteColor)}>
@@ -116,6 +139,30 @@ const NoteItem = ({ note }: { note: Note }) => {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        {category && !isEditing && (
+          <Badge variant="outline" className={cn("text-xs", category.color || "")}>
+            <Folder className="h-3 w-3 mr-1" />
+            {category.name}
+          </Badge>
+        )}
+        {isEditing && (
+          <Select
+            value={editedCategoryId || ""}
+            onValueChange={(value) => setEditedCategoryId(value || undefined)}
+          >
+            <SelectTrigger className="mt-2">
+              <SelectValue placeholder="Select a category (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">No Category</SelectItem>
+              {noteCategories.map(category => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </CardHeader>
       
       <CardContent className="flex-1">
@@ -151,10 +198,11 @@ const NoteItem = ({ note }: { note: Note }) => {
 };
 
 const AddNoteForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) => {
-  const { addNote } = useData();
+  const { addNote, noteCategories } = useData();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [color, setColor] = useState(colors[0]);
+  const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,12 +210,14 @@ const AddNoteForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
       addNote({
         title,
         content,
-        color
+        color,
+        categoryId
       });
       
       // Reset form
       setTitle('');
       setContent('');
+      setCategoryId(undefined);
       
       // Close dialog
       onOpenChange(false);
@@ -199,6 +249,26 @@ const AddNoteForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
             required
           />
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="category">Category (optional)</Label>
+          <Select
+            value={categoryId || ""}
+            onValueChange={(value) => setCategoryId(value || undefined)}
+          >
+            <SelectTrigger id="category">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">No Category</SelectItem>
+              {noteCategories.map(category => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         
         <div className="space-y-2">
           <Label>Note Color</Label>
@@ -227,12 +297,91 @@ const AddNoteForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
   );
 };
 
-const Notes = () => {
-  const { notes } = useData();
-  const [dialogOpen, setDialogOpen] = useState(false);
+const AddCategoryForm = ({ onClose }: { onClose: () => void }) => {
+  const { addNoteCategory } = useData();
+  const [name, setName] = useState('');
+  const [color, setColor] = useState(categoryColors[0]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim()) {
+      addNoteCategory({ 
+        name: name.trim(),
+        color
+      });
+      setName('');
+      onClose();
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="categoryName">Category Name</Label>
+        <Input
+          id="categoryName"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter category name"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Category Color</Label>
+        <div className="flex flex-wrap gap-2">
+          {categoryColors.map((bgColor) => (
+            <Button
+              key={bgColor}
+              type="button"
+              variant="outline"
+              className={cn(
+                "w-8 h-8 rounded-full p-0 border-2",
+                bgColor,
+                color === bgColor ? "border-primary" : "border-transparent"
+              )}
+              onClick={() => setColor(bgColor)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 mt-6">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit">
+          Add Category
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+const Notes = () => {
+  const { notes, noteCategories, deleteNoteCategory } = useData();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+  const filteredNotes = notes.filter(note => {
+    if (selectedCategory === null) return true;
+    return note.categoryId === selectedCategory;
+  });
+
+  const handleAddCategoryClick = () => {
+    setIsAddingCategory(true);
+  };
+
+  const handleCategoryDelete = (id: string) => {
+    if (selectedCategory === id) {
+      setSelectedCategory(null);
+    }
+    deleteNoteCategory(id);
+  };
+
+  return (
+    <div className="space-y-6 pt-4 px-4">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Notes</h1>
@@ -259,25 +408,91 @@ const Notes = () => {
           </DialogContent>
         </Dialog>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {notes.length === 0 ? (
-          <Card className="col-span-full p-8 text-center">
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                You don't have any notes yet. Add your first note to get started.
-              </p>
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Note
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          notes.map((note) => (
-            <NoteItem key={note.id} note={note} />
-          ))
-        )}
+
+      <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6">
+        {/* Categories sidebar */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold">Categories</h2>
+            <Button variant="ghost" size="icon" onClick={handleAddCategoryClick}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="space-y-1">
+            <Button
+              variant={selectedCategory === null ? "default" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setSelectedCategory(null)}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              All Notes
+            </Button>
+            
+            {noteCategories.map(category => (
+              <div key={category.id} className="flex items-center">
+                <Button
+                  variant={selectedCategory === category.id ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => setSelectedCategory(category.id)}
+                >
+                  <div className={cn("h-3 w-3 rounded-full mr-2", category.color || "bg-primary")} />
+                  {category.name}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={() => handleCategoryDelete(category.id)}
+                      className="text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Category
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
+
+          {isAddingCategory && (
+            <Card>
+              <CardContent className="pt-4">
+                <AddCategoryForm onClose={() => setIsAddingCategory(false)} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Notes grid */}
+        <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredNotes.length === 0 ? (
+              <Card className="col-span-full p-8 text-center">
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">
+                    {selectedCategory
+                      ? "This category doesn't have any notes. Add your first note to get started."
+                      : "You don't have any notes yet. Add your first note to get started."
+                    }
+                  </p>
+                  <Button onClick={() => setDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Note
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredNotes.map((note) => (
+                <NoteItem key={note.id} note={note} />
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
