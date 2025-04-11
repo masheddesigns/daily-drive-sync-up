@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Plus, 
@@ -147,14 +146,14 @@ const NoteItem = ({ note }: { note: Note }) => {
         )}
         {isEditing && (
           <Select
-            value={editedCategoryId || ""}
-            onValueChange={(value) => setEditedCategoryId(value || undefined)}
+            value={editedCategoryId || "none"}
+            onValueChange={(value) => setEditedCategoryId(value === "none" ? undefined : value)}
           >
             <SelectTrigger className="mt-2">
               <SelectValue placeholder="Select a category (optional)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No Category</SelectItem>
+              <SelectItem value="none">No Category</SelectItem>
               {noteCategories.map(category => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -211,7 +210,7 @@ const AddNoteForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
         title,
         content,
         color,
-        categoryId
+        categoryId: categoryId === 'none' ? undefined : categoryId
       });
       
       // Reset form
@@ -253,14 +252,14 @@ const AddNoteForm = ({ open, onOpenChange }: { open: boolean, onOpenChange: (ope
         <div className="space-y-2">
           <Label htmlFor="category">Category (optional)</Label>
           <Select
-            value={categoryId || ""}
-            onValueChange={(value) => setCategoryId(value || undefined)}
+            value={categoryId || "none"}
+            onValueChange={(value) => setCategoryId(value === "none" ? undefined : value)}
           >
             <SelectTrigger id="category">
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No Category</SelectItem>
+              <SelectItem value="none">No Category</SelectItem>
               {noteCategories.map(category => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -410,7 +409,6 @@ const Notes = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6">
-        {/* Categories sidebar */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold">Categories</h2>
@@ -468,7 +466,6 @@ const Notes = () => {
           )}
         </div>
 
-        {/* Notes grid */}
         <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredNotes.length === 0 ? (

@@ -256,7 +256,7 @@ const AddTodoForm = ({ open, onOpenChange, selectedList }: {
         description: description.trim() || undefined,
         priority,
         dueDate: dueDate || undefined,
-        listId: listId || undefined
+        listId: listId === 'none' ? undefined : listId
       });
       
       // Reset form
@@ -333,7 +333,7 @@ const AddTodoForm = ({ open, onOpenChange, selectedList }: {
               <SelectValue placeholder="Select a list or none" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No List</SelectItem>
+              <SelectItem value="none">No List</SelectItem>
               {todoLists.map(list => (
                 <SelectItem key={list.id} value={list.id}>
                   {list.name}

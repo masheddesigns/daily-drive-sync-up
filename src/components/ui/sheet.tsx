@@ -57,16 +57,7 @@ const SheetContent = React.forwardRef<
   SheetContentProps
 >(({ side = "right", className, children, ...props }, ref) => (
   <SheetPortal>
-    <SheetOverlay onClick={event => {
-      // Close the sheet when clicking the overlay (outside the sheet)
-      event.stopPropagation();
-      const target = event.target as HTMLElement;
-      if (target.role === 'dialog' || target.dataset.state === 'open') {
-        // This is necessary to identify the overlay
-        const closeEvent = new CustomEvent('close-sheet');
-        document.dispatchEvent(closeEvent);
-      }
-    }} />
+    <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
       className={cn(sheetVariants({ side }), className)}
