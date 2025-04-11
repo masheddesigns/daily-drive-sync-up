@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Save,
@@ -7,7 +6,7 @@ import {
   AlertCircle,
   Loader2,
   Link,
-  LinkOff,
+  Link2Off,
   CheckCircle2
 } from 'lucide-react';
 import { 
@@ -70,7 +69,6 @@ const Settings = () => {
         const content = e.target?.result as string;
         const data = JSON.parse(content);
         
-        // Very basic validation - check if the file has the expected structure
         if (!data.habits || !data.todos || !data.notes) {
           throw new Error('Invalid data format');
         }
@@ -80,7 +78,6 @@ const Settings = () => {
         setImportSuccess(true);
         setImportFile(null);
         
-        // Reset success message after 3 seconds
         setTimeout(() => {
           setImportSuccess(false);
         }, 3000);
@@ -105,7 +102,6 @@ const Settings = () => {
       </div>
       
       <div className="grid gap-6">
-        {/* Local Backup & Restore */}
         <Card>
           <CardHeader>
             <CardTitle>Local Backup & Restore</CardTitle>
@@ -169,7 +165,6 @@ const Settings = () => {
           </CardContent>
         </Card>
         
-        {/* Google Drive Integration */}
         <Card>
           <CardHeader>
             <CardTitle>Google Drive Integration</CardTitle>
@@ -196,7 +191,7 @@ const Settings = () => {
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : isDriveConnected ? (
-                  <LinkOff className="h-4 w-4 mr-2" />
+                  <Link2Off className="h-4 w-4 mr-2" />
                 ) : (
                   <Link className="h-4 w-4 mr-2" />
                 )}
