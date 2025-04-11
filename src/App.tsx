@@ -12,30 +12,33 @@ import Todos from "./pages/Todos";
 import Notes from "./pages/Notes";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { ThemeProvider } from "./components/theme/ThemeProvider";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <DataProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route element={<MainLayout />}>
-              <Route path="/habits" element={<Habits />} />
-              <Route path="/todos" element={<Todos />} />
-              <Route path="/notes" element={<Notes />} />
-              <Route path="/settings" element={<Settings />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </DataProvider>
-  </QueryClientProvider>
+  <ThemeProvider defaultTheme="system" storageKey="daily-drive-theme">
+    <QueryClientProvider client={queryClient}>
+      <DataProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route element={<MainLayout />}>
+                <Route path="/habits" element={<Habits />} />
+                <Route path="/todos" element={<Todos />} />
+                <Route path="/notes" element={<Notes />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </DataProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

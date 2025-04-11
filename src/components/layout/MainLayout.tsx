@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   CheckSquare,
@@ -16,6 +16,7 @@ import { useData } from '@/context/DataContext';
 import NotificationPanel from '@/components/notifications/NotificationPanel';
 import { useIsMobile } from '@/hooks/use-mobile';
 import BottomNavigation from './BottomNavigation';
+import { ThemeToggle } from '../theme/ThemeToggle';
 
 const MainLayout = () => {
   const navigate = useNavigate();
@@ -42,38 +43,67 @@ const MainLayout = () => {
     setIsMobileMenuOpen(prev => !prev);
   };
 
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const sidebar = document.querySelector('[data-sidebar]');
+      
+      if (isMobileMenuOpen && sidebar && !sidebar.contains(target) && 
+          !target.closest('button[data-menu-toggle]')) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top navigation for mobile */}
       {isMobile && (
         <header className="w-full bg-card border-b p-4 flex justify-between items-center">
-          <Button variant="ghost" size="icon" onClick={toggleMobileMenu}>
-            {isMobileMenuOpen ? <X /> : <Menu />}
-          </Button>
-          <h1 className="text-xl font-bold">Daily Drive</h1>
           <Button 
             variant="ghost" 
             size="icon" 
-            className="relative"
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={toggleMobileMenu}
+            data-menu-toggle
           >
-            <Bell />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )}
+            {isMobileMenuOpen ? <X /> : <Menu />}
           </Button>
+          <h1 className="text-xl font-bold">Daily Drive</h1>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="relative"
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <Bell />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </Button>
+          </div>
         </header>
       )}
       
       <div className="flex flex-1">
         {/* Sidebar for desktop or mobile when menu is open */}
         {(!isMobile || isMobileMenuOpen) && (
-          <aside className={cn(
-            "bg-card border-r flex flex-col z-30",
-            isMobile ? "fixed inset-y-0 left-0 w-64 animate-in slide-in-from-left" : "w-64"
-          )}>
+          <aside 
+            data-sidebar
+            className={cn(
+              "bg-card border-r flex flex-col z-30",
+              isMobile ? "fixed inset-y-0 left-0 w-64 animate-in slide-in-from-left" : "w-64"
+            )}
+          >
             <div className="p-6">
               <h1 className="text-2xl font-bold">Daily Drive</h1>
               <p className="text-muted-foreground text-sm">Track your progress</p>
@@ -104,21 +134,24 @@ const MainLayout = () => {
             
             {!isMobile && (
               <div className="p-4 border-t">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between"
-                  onClick={() => setShowNotifications(!showNotifications)}
-                >
-                  <div className="flex items-center">
-                    <Bell className="h-5 w-5 mr-2" />
-                    <span>Notifications</span>
-                  </div>
-                  {unreadCount > 0 && (
-                    <span className="bg-destructive text-destructive-foreground text-xs rounded-full px-2 py-1">
-                      {unreadCount}
-                    </span>
-                  )}
-                </Button>
+                <div className="flex items-center justify-between mb-4">
+                  <ThemeToggle />
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 ml-2 justify-between"
+                    onClick={() => setShowNotifications(!showNotifications)}
+                  >
+                    <div className="flex items-center">
+                      <Bell className="h-5 w-5 mr-2" />
+                      <span>Notifications</span>
+                    </div>
+                    {unreadCount > 0 && (
+                      <span className="bg-destructive text-destructive-foreground text-xs rounded-full px-2 py-1">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
           </aside>
@@ -127,7 +160,7 @@ const MainLayout = () => {
         {/* Main content */}
         <main className={cn(
           "flex-1 p-6 overflow-auto",
-          isMobile && "mt-14 pb-20" // Add padding bottom for bottom navigation
+          isMobile && "pt-16 pb-20" // Adjust top padding to match header height (16pt)
         )}>
           <Outlet />
         </main>
